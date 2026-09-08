@@ -1,5 +1,7 @@
 # 视频下载器（视频号 / B 站 / 小红书 / 抖音）
 
+English version: [README.en.md](README.en.md)
+
 本地网页工具：粘贴分享链接或分享文案，下载到本机 `downloads/`。
 
 浏览器单独打开 HTML 过不了跨域和登录态，所以页面必须配这个本机服务。
