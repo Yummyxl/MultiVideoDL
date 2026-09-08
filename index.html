@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>视频下载器 · 视频号 / B站 / 小红书 / 抖音</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #171e26;
+      --panel-2: #1e2732;
+      --line: #2a3644;
+      --text: #e8eef5;
+      --muted: #8aa0b5;
+      --accent: #3dd6c6;
+      --accent-2: #5b8cff;
+      --danger: #ff6b7a;
+      --ok: #5ee0a0;
+      --shadow: 0 20px 50px rgba(0,0,0,.35);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: "SF Pro Display", "PingFang SC", "Noto Sans SC", sans-serif; }
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(900px 500px at 10% -10%, rgba(61,214,198,.16), transparent 50%),
+        radial-gradient(800px 400px at 100% 0%, rgba(91,140,255,.14), transparent 45%),
+        var(--bg);
+    }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 40px 20px 80px; }
+    header { margin-bottom: 28px; }
+    h1 { font-size: 28px; margin: 0 0 8px; letter-spacing: .02em; }
+    .sub { color: var(--muted); margin: 0; line-height: 1.6; }
+    .card {
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
+      padding: 22px;
+    }
+    textarea, input[type=password], input[type=text] {
+      width: 100%; border: 1px solid var(--line);
+      background: #10161d; color: var(--text); border-radius: 14px; padding: 14px 16px;
+      font-size: 15px; line-height: 1.5; outline: none;
+    }
+    textarea { min-height: 110px; resize: vertical; }
+    textarea:focus, input[type=password]:focus, input[type=text]:focus, select:focus { border-color: var(--accent); }
+    select {
+      border: 1px solid var(--line); background: #10161d; color: var(--text);
+      border-radius: 12px; padding: 10px 12px; font-size: 14px; min-width: 160px;
+    }
+    .card + .card { margin-top: 16px; }
+    .grid { display: grid; gap: 14px; }
+    @media (min-width: 760px) { .grid.two { grid-template-columns: 1fr 1fr; } }
+    .row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+    button.primary, button.ghost {
+      border: 0; border-radius: 12px; padding: 11px 16px; font-size: 14px; cursor: pointer;
+    }
+    button.primary { background: linear-gradient(90deg, var(--accent), var(--accent-2)); color: #062226; font-weight: 700; }
+    button.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    .hint { color: var(--muted); font-size: 13px; margin-top: 10px; }
+    .tags { display: flex; gap: 8px; margin: 14px 0 0; flex-wrap: wrap; }
+    .tag { font-size: 12px; padding: 5px 10px; border-radius: 999px; background: #10161d; border: 1px solid var(--line); color: var(--muted); }
+    .preview, .quality-panel { display: none; margin-top: 16px; }
+    .preview.show { display: flex; gap: 14px; align-items: center; }
+    .quality-panel.show { display: block; }
+    .preview img { width: 92px; height: 92px; object-fit: cover; border-radius: 12px; background: #000; }
+    .preview .meta { color: var(--muted); font-size: 13px; }
+    .quality-list { display: grid; gap: 10px; margin-top: 12px; }
+    @media (min-width: 640px) { .quality-list { grid-template-columns: 1fr 1fr; } }
+    .qcard {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      width: 100%; text-align: left; cursor: default;
+      border: 1px solid var(--line); background: #10161d; color: var(--text);
+      border-radius: 14px; padding: 14px 16px;
+    }
+    .qcard:hover, .qcard.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+    .qcard .qmeta b { display: block; font-size: 16px; margin-bottom: 4px; }
+    .qcard .qmeta span { color: var(--muted); font-size: 13px; }
+    .qcard .qdl {
+      opacity: 0; pointer-events: none; border: 0; border-radius: 10px;
+      padding: 8px 12px; font-size: 13px; font-weight: 700; cursor: pointer;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2)); color: #062226;
+      white-space: nowrap;
+    }
+    .qcard:hover .qdl, .qcard.active .qdl { opacity: 1; pointer-events: auto; }
+    @media (hover: none) {
+      .qcard .qdl { opacity: 1; pointer-events: auto; }
+    }
+    .jobs { margin-top: 28px; display: grid; gap: 12px; }
+    .job { padding: 16px; border-radius: 14px; border: 1px solid var(--line); background: #121820; }
+    .job-top { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+    .job h3 { margin: 0; font-size: 15px; }
+    .status { font-size: 12px; color: var(--accent); }
+    .status.error { color: var(--danger); }
+    .status.done { color: var(--ok); }
+    .bar { height: 8px; background: #0c1116; border-radius: 99px; overflow: hidden; margin: 10px 0; }
+    .bar > i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+    .job p { margin: 0; color: var(--muted); font-size: 13px; word-break: break-all; }
+    h2 { margin: 0 0 8px; font-size: 18px; }
+    .field { margin: 0; }
+    label { display: block; font-size: 13px; margin-bottom: 6px; color: var(--muted); }
+    .cookie-state { font-size: 12px; color: var(--muted); margin-top: 6px; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>视频下载器</h1>
+      <p class="sub">粘贴链接后点解析。解析完成只列出这条视频真实有的清晰度（含体积和时长）。鼠标移到某档会选中并出现下载按钮，点一次即可。</p>
+    </header>
+
+    <section class="card">
+      <textarea id="url" placeholder="例如：&#10;https://weixin.qq.com/sph/xxxxxx&#10;https://www.bilibili.com/video/BVxxxxxx&#10;https://www.xiaohongshu.com/explore/xxxxxx&#10;https://v.douyin.com/xxxxxx/"></textarea>
+      <div class="row">
+        <button class="primary" id="probe">解析链接</button>
+      </div>
+      <div class="tags">
+        <span class="tag">视频号 · 需元宝 Cookie</span>
+        <span class="tag">B 站 · 建议填网页 Cookie</span>
+        <span class="tag">小红书 · 建议填网页 Cookie</span>
+        <span class="tag">抖音 · 失败再填 Cookie</span>
+      </div>
+      <div class="preview" id="preview">
+        <img id="thumb" alt="" />
+        <div>
+          <strong id="ptitle"></strong>
+          <div class="meta" id="pmeta"></div>
+        </div>
+      </div>
+      <div class="quality-panel" id="quality-panel">
+        <h2>选择清晰度</h2>
+        <p class="sub">只显示这条视频实际提供的档位。鼠标移到卡片上会选中并出现下载按钮，点下载才开始。</p>
+        <div class="quality-list" id="quality-list"></div>
+      </div>
+      <p class="hint" id="hint">先解析链接。解析成功后，把鼠标移到想要的清晰度上，再点下载。</p>
+    </section>
+
+    <section class="card" id="cookie-panel">
+      <h2>Cookie 设置</h2>
+      <p class="sub">Cookie 保存在本机 data/settings.json。已保存的内容会填进输入框，可直接查看、修改；清空某一项再保存即可删除。</p>
+      <div class="grid two" style="margin-top:16px">
+        <div class="field">
+          <label>腾讯元宝 Cookie（视频号，必填）</label>
+          <input type="password" id="yuanbao" placeholder="登录 yuanbao.tencent.com → 开发者工具 → 复制 Cookie 整行" autocomplete="off" />
+          <div class="cookie-state" id="yuanbao-state">未配置</div>
+        </div>
+        <div class="field">
+          <label>B 站 Cookie（可选，高清/风控时再填）</label>
+          <input type="password" id="bili" placeholder="登录 www.bilibili.com 后复制 Cookie" autocomplete="off" />
+          <div class="cookie-state" id="bili-state">未配置</div>
+        </div>
+        <div class="field">
+          <label>小红书 Cookie（可选，解析失败时再填）</label>
+          <input type="password" id="xhs" placeholder="登录 xiaohongshu.com 后复制 Cookie" autocomplete="off" />
+          <div class="cookie-state" id="xhs-state">未配置</div>
+        </div>
+        <div class="field">
+          <label>抖音 Cookie（可选，直链失败时再填）</label>
+          <input type="password" id="douyin" placeholder="登录 www.douyin.com 后复制 Cookie" autocomplete="off" />
+          <div class="cookie-state" id="douyin-state">未配置</div>
+        </div>
+      </div>
+      <div class="row">
+        <button class="primary" id="save-settings">保存 Cookie</button>
+      </div>
+      <p class="hint" id="cookie-hint">打开页面后会载入已保存的 Cookie。改完点保存即可。</p>
+    </section>
+
+    <section class="jobs" id="jobs"></section>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const jobsEl = $("jobs");
+    const preview = $("preview");
+    const qualityPanel = $("quality-panel");
+    const qualityList = $("quality-list");
+    let timer = null;
+    let selectedQuality = null;
+    let selectedLabel = "";
+    let probedUrl = "";
+
+    function fmtSize(n) {
+      if (!n) return "体积未知";
+      if (n < 1024) return n + " B";
+      if (n < 1048576) return (n/1024).toFixed(1) + " KB";
+      if (n < 1073741824) return (n/1048576).toFixed(1) + " MB";
+      return (n/1073741824).toFixed(2) + " GB";
+    }
+    function fmtDuration(n) {
+      if (!n && n !== 0) return "时长未知";
+      n = Math.round(n);
+      const m = Math.floor(n / 60);
+      const s = n % 60;
+      if (m >= 60) {
+        const h = Math.floor(m / 60);
+        return `${h}:${String(m % 60).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+      }
+      return `${m}:${String(s).padStart(2,"0")}`;
+    }
+    function resetQuality() {
+      selectedQuality = null;
+      selectedLabel = "";
+      probedUrl = "";
+      qualityList.innerHTML = "";
+      qualityPanel.classList.remove("show");
+      preview.classList.remove("show");
+    }
+    function selectQuality(quality, label, card) {
+      selectedQuality = quality;
+      selectedLabel = label;
+      [...qualityList.children].forEach(el => el.classList.remove("active"));
+      if (card) card.classList.add("active");
+    }
+    async function startDownload(quality, label) {
+      if (!probedUrl) {
+        $("hint").textContent = "请先解析链接。";
+        return;
+      }
+      selectedQuality = quality;
+      selectedLabel = label;
+      qualityList.querySelectorAll(".qdl").forEach(el => el.disabled = true);
+      $("hint").textContent = `开始下载 ${label || quality}…`;
+      try {
+        await api("/api/download", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({url: probedUrl, quality})
+        });
+        $("hint").textContent = `${label || quality} 已开始下载，进度在下方任务列表。`;
+        await refreshJobs();
+        startPoll();
+      } catch (e) {
+        $("hint").textContent = e.message;
+        qualityList.querySelectorAll(".qdl").forEach(el => el.disabled = false);
+      }
+    }
+    function addQualityCard(label, quality, filesize, duration, autoActive) {
+      const card = document.createElement("div");
+      card.className = "qcard";
+      card.innerHTML = `<div class="qmeta"><b>${label}</b><span>${fmtSize(filesize)} · ${fmtDuration(duration)}</span></div>`;
+      const dl = document.createElement("button");
+      dl.type = "button";
+      dl.className = "qdl";
+      dl.textContent = `下载 ${label}`;
+      dl.addEventListener("click", (e) => {
+        e.stopPropagation();
+        selectQuality(quality, label, card);
+        startDownload(quality, label);
+      });
+      card.appendChild(dl);
+      card.addEventListener("mouseenter", () => selectQuality(quality, label, card));
+      qualityList.appendChild(card);
+      if (autoActive) selectQuality(quality, label, card);
+      return card;
+    }
+    function renderQualities(formats, duration) {
+      qualityList.innerHTML = "";
+      selectedQuality = null;
+      selectedLabel = "";
+      if (!formats.length) {
+        qualityPanel.classList.remove("show");
+        return;
+      }
+      qualityPanel.classList.add("show");
+      formats.forEach((fmt, index) => {
+        const label = fmt.label || ((fmt.height || "") + "p") || "原画";
+        const quality = fmt.height || fmt.id || "best";
+        addQualityCard(label, quality, fmt.filesize, fmt.duration || duration, index === 0);
+      });
+    }
+    function platformName(p) {
+      return {wechat:"视频号", bilibili:"B站", xiaohongshu:"小红书", douyin:"抖音"}[p] || p || "";
+    }
+    function cookieText(info) {
+      return info.configured ? `已保存（${info.length} 字符）` : "未配置";
+    }
+    function fillCookie(id, info) {
+      $(id).value = (info && info.value) || "";
+    }
+    async function api(path, opts) {
+      const res = await fetch(path, opts);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "请求失败");
+      return data;
+    }
+    function renderJobs(jobs) {
+      if (!jobs.length) {
+        jobsEl.innerHTML = "";
+        return;
+      }
+      jobsEl.innerHTML = jobs.map(job => {
+        const pct = Math.max(0, Math.min(100, job.percent || 0));
+        const cls = job.status === "error" ? "error" : job.status === "done" ? "done" : "";
+        const title = job.title || job.url;
+        const extra = job.status === "done"
+          ? `<p><a href="${job.download_url}">打开文件 ${job.file_name}</a> · ${fmtSize(job.file_size)}${job.quality ? " · " + job.quality : ""}</p>`
+          : `<p>${job.message || job.error || ""}</p>`;
+        return `<article class="job">
+          <div class="job-top">
+            <h3>${platformName(job.platform)} · ${title}</h3>
+            <span class="status ${cls}">${job.status}</span>
+          </div>
+          <div class="bar"><i style="width:${pct}%"></i></div>
+          ${extra}
+        </article>`;
+      }).join("");
+    }
+    async function refreshJobs() {
+      const data = await api("/api/jobs");
+      renderJobs(data.jobs || []);
+      const busy = (data.jobs || []).some(j => ["queued","resolving","downloading"].includes(j.status));
+      if (!busy && timer) { clearInterval(timer); timer = null; }
+    }
+    function startPoll() {
+      if (timer) return;
+      timer = setInterval(refreshJobs, 800);
+    }
+    function applyCookieStates(data) {
+      fillCookie("yuanbao", data.yuanbao_cookie);
+      fillCookie("bili", data.bili_cookie);
+      fillCookie("xhs", data.xhs_cookie);
+      fillCookie("douyin", data.douyin_cookie);
+      $("yuanbao-state").textContent = cookieText(data.yuanbao_cookie || {});
+      $("bili-state").textContent = cookieText(data.bili_cookie || {});
+      $("xhs-state").textContent = cookieText(data.xhs_cookie || {});
+      $("douyin-state").textContent = cookieText(data.douyin_cookie || {});
+    }
+    async function loadSettings() {
+      const data = await api("/api/settings");
+      applyCookieStates(data);
+    }
+    $("save-settings").onclick = async () => {
+      const payload = {
+        yuanbao_cookie: $("yuanbao").value.trim(),
+        bili_cookie: $("bili").value.trim(),
+        xhs_cookie: $("xhs").value.trim(),
+        douyin_cookie: $("douyin").value.trim(),
+      };
+      try {
+        const data = await api("/api/settings", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify(payload)
+        });
+        applyCookieStates(data);
+        $("cookie-hint").textContent = "Cookie 已保存到本机。";
+      } catch (e) {
+        $("cookie-hint").textContent = e.message;
+      }
+    };
+    $("url").addEventListener("input", () => {
+      if (probedUrl && $("url").value.trim() !== probedUrl) resetQuality();
+    });
+    $("probe").onclick = async () => {
+      $("hint").textContent = "正在解析这条视频的可用清晰度…";
+      $("probe").disabled = true;
+      resetQuality();
+      try {
+        const data = await api("/api/probe", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({url: $("url").value})
+        });
+        const info = data.info || {};
+        probedUrl = $("url").value.trim();
+        $("ptitle").textContent = info.title || "未知标题";
+        $("pmeta").textContent = [info.platform_label || platformName(info.platform), info.uploader, info.duration ? fmtDuration(info.duration) : ""].filter(Boolean).join(" · ");
+        $("thumb").src = info.thumbnail || "";
+        $("thumb").style.display = info.thumbnail ? "block" : "none";
+        preview.classList.add("show");
+        const formats = info.formats || [];
+        renderQualities(formats, info.duration);
+        if (info.need_cookie) {
+          $("hint").textContent = "这条链接需要先在下方补 Cookie，再重新解析。";
+        } else if (!formats.length) {
+          qualityPanel.classList.add("show");
+          addQualityCard("原画", "best", null, info.duration, true);
+          $("hint").textContent = "解析成功，没有分档。把鼠标移到原画上，点下载。";
+        } else {
+          $("hint").textContent = `解析到 ${formats.length} 个清晰度。鼠标移到某档会出现下载按钮，点一次即可。`;
+        }
+      } catch (e) {
+        $("hint").textContent = e.message;
+      } finally {
+        $("probe").disabled = false;
+      }
+    };
+    loadSettings().catch(() => {});
+    refreshJobs().then(startPoll).catch(() => {});
+  </script>
+</body>
+</html>

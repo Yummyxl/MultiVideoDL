@@ -1,0 +1,7 @@
+data/settings.json
+data/*.cookie
+data/*.txt
+downloads/
+__pycache__/
+*.pyc
+.DS_Store
